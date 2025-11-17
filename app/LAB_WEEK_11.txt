@@ -1,0 +1,19 @@
+Bagas Syaddad C (00000102770)
+
+1. Bagian kode yang menangani penyimpanan foto berdasarkan URI
+
+Saat pengguna mengambil gambar, proses penyimpanannya ditangani ketika ActivityResultContracts.TakePicture selesai dijalankan. Kode yang bertanggung jawab untuk menyimpan file ke MediaStore adalah baris berikut di dalam MainActivity:
+
+takePictureLauncher =
+    registerForActivityResult(ActivityResultContracts.TakePicture()) {
+        providerFileManager.insertImageToStore(photoInfo)
+    }
+
+Bagian ini memanggil fungsi insertImageToStore dari ProviderFileManager dan mengoper objek photoInfo yang berisi URI dan informasi file lain. Dari sinilah file disalin ke MediaStore setelah kamera selesai mengambil foto.
+
+2. Penjelasan atribut pada FileInfo.kt
+Pada FileInfo, atribut pertama adalah uri. Nilai uri adalah alamat sementara yang diberikan oleh FileProvider yang menunjuk ke file gambar atau video yang baru saja dibuat di direktori aplikasi. URI ini tidak langsung menunjuk ke lokasi final di MediaStore, melainkan menjadi pintu masuk sementara agar kamera bisa menulis hasil tangkapan ke file yang kita sediakan.
+Atribut keempat adalah relativePath. Nilai relativePath berisi lokasi penyimpanan relatif di dalam MediaStore. Untuk gambar, nilainya biasanya adalah Pictures, dan untuk video adalah Movies. Ini menentukan folder tujuan ketika file akhirnya dipindahkan ke MediaStore sehingga file tersebut bisa muncul di aplikasi Gallery.
+
+3. Bonus: Urutan proses lengkap dari pengguna memotret sampai file tersimpan di MediaStore Prosesnya berlangsung dalam beberapa tahap yang berurutan. Pertama, ketika pengguna menekan tombol Photo, aplikasi memanggil fungsi untuk mengecek izin penyimpanan. Setelah izin dianggap aman, fungsi openImageCapture dijalankan. Pada tahap ini aplikasi membuat objek FileInfo melalui generatePhotoUri. Di sinilah nama file dibuat, file fisik disiapkan di direktori Pictures aplikasi, dan URI sementara diberikan melalui FileProvider.
+Setelah itu, aplikasi menjalankan kamera menggunakan launcher TakePicture dan memberikan URI dari FileInfo kepada kamera. Kamera kemudian menulis hasil foto ke file berdasarkan URI tersebut. Ketika proses kamera selesai, blok callback TakePicture dijalankan dan aplikasi memanggil insertImageToStore. Pada tahap ini file yang tadi ditulisi oleh kamera dibaca ulang melalui input stream, lalu disalin ke MediaStore menggunakan output stream yang diberikan oleh content resolver. MediaStore kemudian menyimpan file tersebut di folder sesuai relativePath dan mencatat informasinya di database internalnya.
